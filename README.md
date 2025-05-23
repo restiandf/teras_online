@@ -29,3 +29,6 @@ Teras Online adalah platform e-commerce yang memungkinkan pengguna untuk berbela
 Akun:
 admin = email: admin@mail.com | Password:123
 pengguna = email: rdf@gmail.com | Password: 123
+
+File SQL:
+teras_online.sql
