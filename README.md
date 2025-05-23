@@ -26,9 +26,9 @@ Teras Online adalah platform e-commerce yang memungkinkan pengguna untuk berbela
 - JavaScript
 - Material Icons
 
-Akun:
-admin = email: admin@mail.com | Password:123
-pengguna = email: rdf@gmail.com | Password: 123
+## Akun:
+- admin = email: admin@mail.com | Password:123
+- pengguna = email: rdf@gmail.com | Password: 123
 
-File SQL:
-teras_online.sql
+## File SQL:
+- teras_online.sql
