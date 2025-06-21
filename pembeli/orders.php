@@ -310,6 +310,25 @@ foreach ($orders as &$order) {
                                                             </div>
                                                             <div class="text-right">
                                                                 <p class="font-medium text-gray-800 text-sm">Rp <?php echo number_format($item['price'] * $item['quantity'], 0, ',', '.'); ?></p>
+                                                                <?php if ($order['status'] === 'delivered'):
+                                                                    // Cek apakah user sudah memberi rating untuk produk ini di order ini
+                                                                    $cek_rating = mysqli_query($conn, "SELECT rating, comment FROM ratings WHERE product_id = {$item['product_id']} AND user_id = {$user_id} AND order_id = {$order['order_id']}");
+                                                                    if ($row_rating = mysqli_fetch_assoc($cek_rating)):
+                                                                        $user_rating = (int)$row_rating['rating']; ?>
+                                                                        <span class="inline-block mt-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded flex flex-col items-center">
+                                                                            <span>Sudah memberi rating</span>
+                                                                            <span>
+                                                                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                                                    <span class="material-symbols-rounded text-lg align-middle <?php echo $i <= $user_rating ? 'text-amber-400' : 'text-gray-300'; ?>">
+                                                                                        <?php echo $i <= $user_rating ? 'star' : 'star'; ?>
+                                                                                    </span>
+                                                                                <?php endfor; ?>
+                                                                            </span>
+                                                                        </span>
+                                                                    <?php else: ?>
+                                                                        <button class="ml-2 px-2 py-1 text-xs bg-amber-500 text-white rounded hover:bg-amber-600 transition" onclick="openRatingModal(<?php echo $item['product_id']; ?>, <?php echo $order['order_id']; ?>, '<?php echo htmlspecialchars(addslashes($item['product_name'])); ?>')">Beri Rating</button>
+                                                                    <?php endif; ?>
+                                                                <?php endif; ?>
                                                             </div>
                                                         </div>
                                                     <?php endforeach; ?>
@@ -446,6 +465,88 @@ foreach ($orders as &$order) {
                     alert('Terjadi kesalahan saat memproses pembayaran');
                 });
         }
+    </script>
+
+    <!-- Modal Rating -->
+    <div id="ratingModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-40 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+            <button onclick="closeRatingModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">&times;</button>
+            <h3 class="text-lg font-semibold mb-2" id="modalProductName"></h3>
+            <form id="ratingForm">
+                <input type="hidden" name="product_id" id="ratingProductId">
+                <input type="hidden" name="order_id" id="ratingOrderId">
+                <div class="flex items-center gap-1 mb-3" id="starContainer">
+                    <!-- Star rating -->
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <span class="material-symbols-rounded text-3xl cursor-pointer text-gray-300" data-star="<?php echo $i; ?>">star</span>
+                    <?php endfor; ?>
+                </div>
+                <input type="hidden" name="rating" id="ratingValue" value="0">
+                <div class="mb-3">
+                    <textarea name="comment" id="ratingComment" rows="3" class="w-full border rounded p-2" placeholder="Tulis ulasan Anda..."></textarea>
+                </div>
+                <button type="submit" class="bg-amber-500 text-white px-4 py-2 rounded hover:bg-amber-600 transition">Kirim Rating</button>
+            </form>
+            <div id="ratingMsg" class="mt-2 text-sm"></div>
+        </div>
+    </div>
+    <script>
+        function openRatingModal(productId, orderId, productName) {
+            document.getElementById('ratingModal').classList.remove('hidden');
+            document.getElementById('ratingProductId').value = productId;
+            document.getElementById('ratingOrderId').value = orderId;
+            document.getElementById('modalProductName').textContent = productName;
+            document.getElementById('ratingValue').value = 0;
+            document.getElementById('ratingComment').value = '';
+            document.getElementById('ratingMsg').textContent = '';
+            // Reset star color
+            document.querySelectorAll('#starContainer span').forEach(star => {
+                star.classList.remove('text-amber-400');
+                star.classList.add('text-gray-300');
+            });
+        }
+
+        function closeRatingModal() {
+            document.getElementById('ratingModal').classList.add('hidden');
+        }
+        document.querySelectorAll('#starContainer span').forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = this.getAttribute('data-star');
+                document.getElementById('ratingValue').value = rating;
+                document.querySelectorAll('#starContainer span').forEach((s, idx) => {
+                    if (idx < rating) {
+                        s.classList.remove('text-gray-300');
+                        s.classList.add('text-amber-400');
+                    } else {
+                        s.classList.remove('text-amber-400');
+                        s.classList.add('text-gray-300');
+                    }
+                });
+            });
+        });
+        document.getElementById('ratingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('submit_rating.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('ratingMsg').textContent = 'Rating berhasil dikirim!';
+                        setTimeout(() => {
+                            closeRatingModal();
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        document.getElementById('ratingMsg').textContent = data.message || 'Gagal mengirim rating.';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('ratingMsg').textContent = 'Terjadi kesalahan.';
+                });
+        });
     </script>
 </body>
 

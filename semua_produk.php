@@ -126,7 +126,7 @@ $total_products = mysqli_num_rows($result_products);
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         <?php if ($total_products > 0): ?>
           <?php while ($row = mysqli_fetch_assoc($result_products)): ?>
             <a href="<?php echo $row['stock'] > 0 ? 'product-detail.php?id=' . $row['product_id'] : '#'; ?>" class="<?php echo $row['stock'] <= 0 ? 'cursor-not-allowed' : ''; ?>">

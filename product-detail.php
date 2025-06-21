@@ -6,7 +6,9 @@ include 'koneksi.php';
 $product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Query untuk mengambil detail produk
-$sql = "SELECT p.*, pi.image_url 
+$sql = "SELECT p.*, pi.image_url,
+        (SELECT AVG(rating) FROM ratings WHERE product_id = p.product_id) as avg_rating,
+        (SELECT COUNT(*) FROM ratings WHERE product_id = p.product_id) as total_ratings
         FROM products p 
         LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 
         WHERE p.product_id = ?";
@@ -29,6 +31,19 @@ mysqli_stmt_bind_param($stmt_images, "i", $product_id);
 mysqli_stmt_execute($stmt_images);
 $result_images = mysqli_stmt_get_result($stmt_images);
 $images = mysqli_fetch_all($result_images, MYSQLI_ASSOC);
+
+// Query untuk mengambil data rating/ulasan
+$sql_ratings = "SELECT r.*, u.name 
+                FROM ratings r
+                JOIN users u ON r.user_id = u.user_id
+                WHERE r.product_id = ?
+                ORDER BY r.created_at DESC
+                LIMIT 5";
+$stmt_ratings = mysqli_prepare($conn, $sql_ratings);
+mysqli_stmt_bind_param($stmt_ratings, "i", $product_id);
+mysqli_stmt_execute($stmt_ratings);
+$result_ratings = mysqli_stmt_get_result($stmt_ratings);
+$ratings = mysqli_fetch_all($result_ratings, MYSQLI_ASSOC);
 ?>
 
 <body>
@@ -122,9 +137,28 @@ $images = mysqli_fetch_all($result_images, MYSQLI_ASSOC);
             </div>
 
             <!-- Deskripsi -->
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Deskripsi Produk</h3>
+            <div class="">
+              <h3 class="text-lg font-semibold text-gray-900">Deskripsi Produk</h3>
               <p class="text-gray-600"><?php echo nl2br(htmlspecialchars($product['description'])); ?></p>
+            </div>
+
+            <!-- Rating -->
+            <div class="">
+              <h3 class="text-lg font-semibold text-gray-900">Rating Produk</h3>
+              <div class="flex items-center gap-2 mb-2">
+                <div class="flex items-center">
+                  <?php
+                  $avg_rating = $product['avg_rating'] ?? 0;
+                  for ($i = 1; $i <= 5; $i++):
+                  ?>
+                    <span class="material-symbols-rounded text-<?php echo $i <= round($avg_rating) ? 'amber-400' : 'gray-300'; ?>">
+                      star
+                    </span>
+                  <?php endfor; ?>
+                </div>
+                <span class="text-gray-600">(<?php echo number_format($avg_rating, 1); ?>/5)</span>
+                <span class="text-gray-600"><?php echo $product['total_ratings'] ?? 0; ?> ulasan</span>
+              </div>
             </div>
 
             <!-- Tombol Aksi -->
@@ -155,61 +189,37 @@ $images = mysqli_fetch_all($result_images, MYSQLI_ASSOC);
   <section class="mb-2">
     <div class="max-w-screen-xl mx-auto px-4">
       <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <h2 class="flex items-center gap-2 text-2xl font-bold text-blue-600 border-b border-gray-200 pb-4"><span class="material-symbols-rounded text-blue-600"> rate_review</span> Pembeli Produk Ini</h2>
+        <h2 class="flex items-center gap-2 text-2xl font-bold text-blue-600 border-b border-gray-200 pb-4"><span class="material-symbols-rounded text-blue-600"> rate_review</span> Ulasan Pembeli</h2>
 
-        <!-- Daftar Pembeli -->
+        <!-- Daftar Ulasan -->
         <?php
-        // Query untuk mengambil data pembeli
-        $sql_buyers = "SELECT o.*, u.name, u.email, oi.product_id 
-                       FROM orders o 
-                       JOIN users u ON o.user_id = u.user_id 
-                       JOIN order_items oi ON o.order_id = oi.order_id 
-                       WHERE oi.product_id = ? AND o.status IN ('paid', 'processing', 'shipped', 'delivered') 
-                       ORDER BY o.created_at DESC 
-                       LIMIT 5";
-        $stmt_buyers = mysqli_prepare($conn, $sql_buyers);
-        mysqli_stmt_bind_param($stmt_buyers, "i", $product_id);
-        mysqli_stmt_execute($stmt_buyers);
-        $result_buyers = mysqli_stmt_get_result($stmt_buyers);
-        $buyers = mysqli_fetch_all($result_buyers, MYSQLI_ASSOC);
-
-        if (empty($buyers)): ?>
+        if (empty($ratings)): ?>
           <div class="text-center py-8">
-            <p class="text-gray-500 dark:text-gray-400">Belum ada pembeli untuk produk ini</p>
+            <p class="text-gray-500 dark:text-gray-400">Belum ada ulasan untuk produk ini</p>
           </div>
           <?php else:
-          foreach ($buyers as $buyer):
-            // Sensor nama pengguna
-            $name_parts = explode(' ', $buyer['name']);
+          foreach ($ratings as $rating):
+            $name_parts = explode(' ', $rating['name']);
             $sensitive_name = $name_parts[0] . ' ' . substr($name_parts[1] ?? '', 0, 1) . '***';
-
-            // Tentukan status pesanan dalam bahasa Indonesia
-            $status_text = '';
-            switch ($buyer['status']) {
-              case 'paid':
-                $status_text = 'Sudah Dibayar';
-                break;
-              case 'processing':
-                $status_text = 'Sedang Diproses';
-                break;
-              case 'shipped':
-                $status_text = 'Dalam Pengiriman';
-                break;
-              case 'delivered':
-                $status_text = 'Sudah Diterima';
-                break;
-            }
           ?>
             <div class="border-gray-200 bg-white ps-2 border-b pt-2">
               <div class="flex items-center mb-2">
                 <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 font-semibold mr-3">
-                  <?php echo strtoupper(substr($buyer['name'], 0, 1)); ?>
+                  <?php echo strtoupper(substr($rating['name'], 0, 1)); ?>
                 </div>
                 <div>
                   <div class="font-semibold text-gray-900"><?php echo htmlspecialchars($sensitive_name); ?></div>
                   <p class="text-sm text-gray-500">
-                    <?php echo date('d F Y H:i', strtotime($buyer['created_at'])); ?> | <?php echo $status_text; ?>
+                    <?php echo date('d F Y H:i', strtotime($rating['created_at'])); ?>
                   </p>
+                  <div>
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                      <span class="material-symbols-rounded text-base <?php echo $i <= $rating['rating'] ? 'text-amber-400' : 'text-gray-300'; ?>">
+                        star
+                      </span>
+                    <?php endfor; ?>
+                  </div>
+                  <div class="text-gray-700 text-sm mt-1"><?php echo nl2br(htmlspecialchars($rating['comment'])); ?></div>
                 </div>
               </div>
             </div>

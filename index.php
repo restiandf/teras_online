@@ -2,14 +2,24 @@
 include 'inc_header.php';
 include 'koneksi.php';
 
-// Ambil produk 3 hari terakhir
+// Ambil produk 10 hari terakhir
 $sql_popular = "SELECT p.*, pi.image_url 
                 FROM products p 
                 LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 
                 WHERE p.stock > 0 
-                AND p.created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+                AND p.created_at >= DATE_SUB(NOW(), INTERVAL 10 DAY)
                 ORDER BY p.created_at DESC";
 $result_popular = mysqli_query($conn, $sql_popular);
+
+// Jika tidak ada produk dalam 10 hari terakhir, ambil semua produk yang stoknya > 0
+if (mysqli_num_rows($result_popular) == 0) {
+  $sql_popular = "SELECT p.*, pi.image_url 
+                    FROM products p 
+                    LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 
+                    WHERE p.stock > 0 
+                    ORDER BY p.created_at DESC";
+  $result_popular = mysqli_query($conn, $sql_popular);
+}
 
 // Ambil produk yang sudah pernah terjual
 $sql_sold = "SELECT p.*, pi.image_url, 
@@ -84,13 +94,13 @@ $result_sold = mysqli_query($conn, $sql_sold);
       </div>
 
       <div class="relative overflow-hidden">
-        <div id="productCarousel" class="flex flex-col md:flex-row transition-transform duration-500 ease-in-out">
+        <div id="productCarousel" class="flex flex-nowrap md:flex-row transition-transform duration-500 ease-in-ou">
           <?php
           $total_items = 0;
           while ($row = mysqli_fetch_assoc($result_popular)):
             $total_items++;
           ?>
-            <div class="w-full md:w-1/2 lg:w-1/3 xl:w-1/4 flex-shrink-0 px-2 mb-4 md:mb-0">
+            <div class="w-1/2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 flex-shrink-0 px-2 mb-4">
               <a href="product-detail.php?id=<?php echo $row['product_id']; ?>">
                 <div class="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden hover:shadow-lg relative">
                   <div class="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium transform rotate-12">
@@ -115,8 +125,8 @@ $result_sold = mysqli_query($conn, $sql_sold);
                         <span class="text-sm text-blue-600">
                           <?php
                           $sql_sales = "SELECT SUM(quantity) as total_sold 
-                                      FROM order_items 
-                                      WHERE product_id = ?";
+                          FROM order_items 
+                          WHERE product_id = ?";
                           $stmt = mysqli_prepare($conn, $sql_sales);
                           mysqli_stmt_bind_param($stmt, "i", $row['product_id']);
                           mysqli_stmt_execute($stmt);
@@ -235,9 +245,9 @@ $result_sold = mysqli_query($conn, $sql_sold);
       </div>
 
       <div class="relative overflow-hidden">
-        <div id="bestsellerCarousel" class="flex flex-col md:flex-row transition-transform duration-500 ease-in-out">
+        <div id="bestsellerCarousel" class="flex flex-nowrap md:flex-row transition-transform duration-500 ease-in-out">
           <?php while ($row = mysqli_fetch_assoc($result_sold)): ?>
-            <div class="w-full md:w-1/2 lg:w-1/3 xl:w-1/4 flex-shrink-0 px-2 mb-4 md:mb-0">
+            <div class="w-1/2 sm:w-1/2 md:w-1/2 lg:w-1/3 xl:w-1/4 flex-shrink-0 px-2 mb-4 md:mb-0">
               <a href="product-detail.php?id=<?php echo $row['product_id']; ?>">
                 <div class="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden hover:shadow-lg relative">
                   <img src="<?php echo $row['image_url']; ?>" alt="<?php echo htmlspecialchars($row['name']); ?>" class="h-48 mx-auto object-cover w-full" />

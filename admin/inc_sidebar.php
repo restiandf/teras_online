@@ -26,6 +26,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </li>
             <li>
                 <a
+                    href="rates.php"
+                    class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 group <?php echo in_array($current_page, ['rates.php', 'view_rates.php', 'add_rates.php', 'edit_rates.php']) ? 'bg-gray-700 text-white' : ''; ?>">
+                    <span class="material-symbols-rounded">star</span>
+                    <span class="flex-1 ms-3 whitespace-nowrap">Rating</span>
+                </a>
+            </li>
+            <li>
+                <a
                     href="transactions.php"
                     class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 group <?php echo in_array($current_page, ['transactions.php', 'order_detail.php', 'print_invoice.php']) ? 'bg-gray-700 text-white' : ''; ?>">
                     <span class="material-symbols-rounded">receipt_long</span>

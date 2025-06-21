@@ -9,18 +9,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 include '../koneksi.php';
 
-// Filter bulan
-$selected_month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
-$month_start = $selected_month . '-01';
-$month_end = date('Y-m-t', strtotime($month_start));
-
 // Ambil total produk
 $sql_products = "SELECT COUNT(*) as total FROM products";
 $result_products = mysqli_query($conn, $sql_products);
 $total_products = mysqli_fetch_assoc($result_products)['total'];
 
 // Ambil total pesanan
-$sql_orders = "SELECT COUNT(*) as total FROM orders WHERE DATE(created_at) BETWEEN '$month_start' AND '$month_end'";
+$sql_orders = "SELECT COUNT(*) as total FROM orders";
 $result_orders = mysqli_query($conn, $sql_orders);
 $total_orders = mysqli_fetch_assoc($result_orders)['total'];
 
@@ -30,12 +25,12 @@ $result_users = mysqli_query($conn, $sql_users);
 $total_users = mysqli_fetch_assoc($result_users)['total'];
 
 // Ambil total pendapatan
-$sql_revenue = "SELECT COALESCE(SUM(grand_total), 0) as total FROM orders WHERE status != 'cancelled' AND DATE(created_at) BETWEEN '$month_start' AND '$month_end'";
+$sql_revenue = "SELECT COALESCE(SUM(grand_total), 0) as total FROM orders WHERE status != 'cancelled'";
 $result_revenue = mysqli_query($conn, $sql_revenue);
 $total_revenue = mysqli_fetch_assoc($result_revenue)['total'];
 
 // Ambil total pesanan berdasarkan status
-$sql_orders_status = "SELECT status, COUNT(*) as total FROM orders WHERE DATE(created_at) BETWEEN '$month_start' AND '$month_end' GROUP BY status";
+$sql_orders_status = "SELECT status, COUNT(*) as total FROM orders GROUP BY status";
 $result_orders_status = mysqli_query($conn, $sql_orders_status);
 $orders_by_status = [];
 while ($row = mysqli_fetch_assoc($result_orders_status)) {
@@ -43,7 +38,7 @@ while ($row = mysqli_fetch_assoc($result_orders_status)) {
 }
 
 // Ambil pendapatan bulan ini
-$sql_monthly_revenue = "SELECT COALESCE(SUM(grand_total), 0) as total FROM orders WHERE status != 'cancelled' AND DATE(created_at) BETWEEN '$month_start' AND '$month_end'";
+$sql_monthly_revenue = "SELECT COALESCE(SUM(grand_total), 0) as total FROM orders WHERE status != 'cancelled' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())";
 $result_monthly_revenue = mysqli_query($conn, $sql_monthly_revenue);
 $monthly_revenue = mysqli_fetch_assoc($result_monthly_revenue)['total'];
 
@@ -51,8 +46,6 @@ $monthly_revenue = mysqli_fetch_assoc($result_monthly_revenue)['total'];
 $sql_best_seller = "SELECT p.name, SUM(oi.quantity) as total_sold 
                     FROM order_items oi 
                     JOIN products p ON oi.product_id = p.product_id 
-                    JOIN orders o ON oi.order_id = o.order_id
-                    WHERE DATE(o.created_at) BETWEEN '$month_start' AND '$month_end'
                     GROUP BY p.product_id 
                     ORDER BY total_sold DESC 
                     LIMIT 5";
@@ -77,23 +70,7 @@ include 'inc_header.php';
 
   <!-- Main Content -->
   <div class="p-4 sm:ml-64">
-    <div class="rounded-lg mt-14">
-      <!-- Filter Section -->
-      <div class="mb-4">
-        <form method="GET" class="flex items-center gap-4">
-          <label for="month" class="block text-sm font-medium text-gray-700 mb-1">Filter Bulan</label>
-          <div class="flex-1">
-            <input type="month" id="month" name="month" value="<?php echo $selected_month; ?>"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-          </div>
-          <div class="flex items-end">
-            <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
-              Filter
-            </button>
-          </div>
-        </form>
-      </div>
-
+    <div class=" rounded-lg mt-14">
       <!-- Welcome Section -->
       <div class="grid grid-cols-1 gap-4 mb-4">
         <div class="flex flex-col justify-start p-6 h-24 rounded bg-blue-600 border border-blue-700">
